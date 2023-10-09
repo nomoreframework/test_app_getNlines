@@ -2,46 +2,39 @@ using test_app_getNlines.Models;
 
 public class PostRepository : IPostRepository
 {
-    private readonly List<Post> posts;
-    private readonly List<User> users;
-
-    public PostRepository()
-    {
-        users = usersInit(7);
-        posts = postsInit(users,18);
+    private readonly IDataContextStorage context;
+    public PostRepository(IDataContextStorage context){
+        this.context = context;
     }
-    public IEnumerable<Post> GetLastNPostsByUserUIId(Guid userUIId, int n)
+    public IEnumerable<Post> GetLastNPostsByUserUIId(Guid userUIId, int n,int pageNumber = 1)
     {
-        return posts
+        return context.posts
+        .SkipLast((pageNumber - 1) * n)
             .Where(post => post.UserUIId == userUIId)
-            .OrderByDescending(post => post.Id)
+            .OrderByDescending(post => post.DateCreated)
             .Take(n)
             .ToList();
     }
+    public IEnumerable<Post> GetNLastPostsForUsers(int countOfLastUsers, int n, int pageNumber = 1)
+    {
+         var lastNUserUIIds = context.users
+        .SkipLast((pageNumber - 1) * n)
+            .OrderByDescending(u => u.Id)
+            .Select(u => u.UIId)
+            .Take(n)
+            .ToList();
+
+        var lastNPosts = context.posts
+            .Where(p => lastNUserUIIds.Contains(p.UserUIId))
+            .OrderByDescending(p => p.DateCreated)
+            .Take(n)
+            .ToList();
+
+        return lastNPosts;
+    }
     public IEnumerable<User> GetNLastUsersNoDeterminate(int count = 0){
-        return users
+        return context.users
             .TakeLast(count)
             .ToList();
-    }
-    List<Post> postsInit(IEnumerable<User> users, uint linesCount)
-    {
-        if(linesCount > int.MaxValue) 
-            throw new ArgumentException($"argument {nameof(linesCount)} must be greater -1 and  less than UINT32.MAX_VALUE ({int.MaxValue})");
-        var posts = new List<Post>();
-        foreach (var u in users) 
-            for(int i = 0;i < linesCount;i++) posts.Add(new Post(u,$"HashCode for userName - {u.Name} = {String.GetHashCode(u.Name)}"){Id = i});
-        return posts;
-    }
-    List<User> usersInit(uint linesCount)
-    {
-        var names = new []{"Vasya@","Petya@","Fedya@","Nastya@","Andrei@","John@"};
-        if(linesCount > int.MaxValue) 
-            throw new ArgumentException($"argument {nameof(linesCount)} must be greater -1 and  less than UINT32.MAX_VALUE ({int.MaxValue})");
-        var users = new List<User>((int)linesCount);
-        for(int i = 0; i < linesCount; i++){
-            Task.Delay(new Random().Next(1,4));
-            users.Add(new User(names[new Random().Next(0,names.Length - 1)] + $"{i}",i));
-        }
-        return users;
     }
 }
