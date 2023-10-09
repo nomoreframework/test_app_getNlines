@@ -7,6 +7,11 @@ namespace test_app_getNlines.Models
     {
         [StringLength(25, MinimumLength=2)]
         public string Name { get; set; }
-        public User(string name,int id) {Name = name;UIId = Guid.NewGuid();}
+        public User(string name,int id) 
+        {
+            Name = name;
+            Id = id;
+            UIId = Guid.NewGuid();
+        }
     }
 }
